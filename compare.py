@@ -2,14 +2,17 @@ import sys
 import os
 import os.path
 import logging
+import glob
 
 import taskgraph
 import pygeoprocessing
 import numpy
 import numpy.testing
+from osgeo import gdal
 
 logging.basicConfig(level=logging.DEBUG)
 
+LOGGER = logging.getLogger(__name__)
 BASELINE = 'restoration'
 PREFIX = 'noxn_in_drinking_water'
 BYTE_NODATA = 255
@@ -24,6 +27,7 @@ def main():
     tg_directory = os.path.join(target_workspace, '_taskgraph_db')
 
     graph = taskgraph.TaskGraph(tg_directory, n_workers=8)
+    #graph = taskgraph.TaskGraph(tg_directory, n_workers=-1)
 
     baseline_scenario_raster = os.path.join(
         source_directory, f'{PREFIX}_{BASELINE}.tif')
@@ -32,8 +36,11 @@ def main():
 
     target_raster_paths = []
     for scenario_raster in glob.glob(os.path.join(source_directory, '*.tif')):
+        LOGGER.info(f'Making a task for {scenario_raster}')
         if f'{PREFIX}_{BASELINE}.tif' in scenario_raster:
             continue
+
+        scenario = os.path.splitext(os.path.basename(scenario_raster))[0]
 
         # No need to assert raster dimensions ahead of time, just add to graph.
         # raster_calculator will assert dimensions.
@@ -55,8 +62,8 @@ def main():
             target_path_list=[target_raster_path],
             task_name=f'check {scenario}')
 
-    task_graph.close()
-    task_graph.join()
+    graph.close()
+    graph.join()
 
     with open(os.path.join(target_workspace, 'summary.txt')) as summary:
         for target_raster_path in target_raster_paths:
@@ -75,7 +82,11 @@ def _check_values(baseline, other, baseline_nodata, other_nodata):
     if other_nodata is not None:
         valid &= (~numpy.isclose(other, other_nodata))
 
-    other_greater_than_baseline = (other[valid] > baseline[valid])
+    if numpy.count_nonzero(valid) == 0:
+        return target_matrix
+
+    other_greater_than_baseline = numpy.zeros(baseline.shape, dtype=numpy.bool)
+    other_greater_than_baseline[valid] = (other[valid] > baseline[valid])
 
     target_matrix[valid & other_greater_than_baseline] = 1
     target_matrix[valid & ~other_greater_than_baseline] = 0
@@ -83,6 +94,7 @@ def _check_values(baseline, other, baseline_nodata, other_nodata):
 
 
 def test():
+    LOGGER.info('Testing')
     baseline = numpy.array([
         [0, 1],
         [2, 3]], dtype=numpy.float32)
@@ -99,6 +111,7 @@ def test():
         [1, BYTE_NODATA],
         [BYTE_NODATA, 0]], dtype=numpy.uint8)
     numpy.testing.assert_equal(result, expected_result)
+    LOGGER.info('Test passed')
 
 
 def test_greater_than():
@@ -114,4 +127,4 @@ def test_less_than():
 
 if __name__ == '__main__':
     test()
-    #main()
+    main()

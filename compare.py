@@ -120,17 +120,6 @@ def test():
     LOGGER.info('Test passed')
 
 
-def test_greater_than():
-    pass
-
-def test_less_than():
-    # make a sample baseline raster
-    # make a sample 'other' raster
-    # run
-    # assert results
-    pass
-
-
 if __name__ == '__main__':
     test()
     main()

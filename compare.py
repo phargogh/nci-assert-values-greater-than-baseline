@@ -26,7 +26,7 @@ def main():
 
     tg_directory = os.path.join(target_workspace, '_taskgraph_db')
 
-    graph = taskgraph.TaskGraph(tg_directory, n_workers=8)
+    graph = taskgraph.TaskGraph(tg_directory, n_workers=16)
     #graph = taskgraph.TaskGraph(tg_directory, n_workers=-1)
 
     baseline_scenario_raster = os.path.join(
@@ -65,11 +65,17 @@ def main():
     graph.close()
     graph.join()
 
-    with open(os.path.join(target_workspace, 'summary.txt')) as summary:
+    summary_file = os.path.join(target_workspace, 'summary.txt')
+    with open(summary_file, 'w') as summary:
         for target_raster_path in target_raster_paths:
             raster = gdal.Open(target_raster_path)
             band = raster.GetRasterBand(1)
-            summary.write(str(band.GetStatistics()))
+            min, max, mean, stddev = band.GetStatistics(0, 0)
+            summary_string = f'{target_raster_path}, min:{min}, max:{max}, mean:{mean}, stddev:{stddev}\n'
+            summary.write(summary_string)
+
+    for line in open(summary_file):
+        print(line.strip())
 
 
 def _check_values(baseline, other, baseline_nodata, other_nodata):
@@ -86,7 +92,7 @@ def _check_values(baseline, other, baseline_nodata, other_nodata):
         return target_matrix
 
     other_greater_than_baseline = numpy.zeros(baseline.shape, dtype=numpy.bool)
-    other_greater_than_baseline[valid] = (other[valid] > baseline[valid])
+    other_greater_than_baseline[valid] = (other[valid] >= baseline[valid])
 
     target_matrix[valid & other_greater_than_baseline] = 1
     target_matrix[valid & ~other_greater_than_baseline] = 0

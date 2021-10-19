@@ -29,10 +29,10 @@ def main():
     graph = taskgraph.TaskGraph(tg_directory, n_workers=16)
     #graph = taskgraph.TaskGraph(tg_directory, n_workers=-1)
 
-    baseline_scenario_raster = os.path.join(
+    restoration_scenario_raster = os.path.join(
         source_directory, f'{PREFIX}_{BASELINE}.tif')
     source_raster_info = pygeoprocessing.get_raster_info(
-        baseline_scenario_raster)
+        restoration_scenario_raster)
 
     target_raster_paths = []
     for scenario_raster in glob.glob(os.path.join(source_directory, '*.tif')):
@@ -51,7 +51,7 @@ def main():
         graph.add_task(
             pygeoprocessing.raster_calculator,
             args=(
-                [(baseline_scenario_raster, 1),
+                [(restoration_scenario_raster, 1),
                  (scenario_raster, 1),
                  (source_raster_info['nodata'][0], 'raw'),
                  (scenario_raster_info['nodata'][0], 'raw')],
@@ -78,12 +78,12 @@ def main():
         print(line.strip())
 
 
-def _check_values(baseline, other, baseline_nodata, other_nodata):
-    target_matrix = numpy.full(baseline.shape, BYTE_NODATA, dtype=numpy.uint8)
+def _check_values(restoration, other, restoration_nodata, other_nodata):
+    target_matrix = numpy.full(restoration.shape, BYTE_NODATA, dtype=numpy.uint8)
 
-    valid = numpy.ones(baseline.shape, dtype=bool)
-    if baseline_nodata is not None:
-        valid &= (~numpy.isclose(baseline, baseline_nodata))
+    valid = numpy.ones(restoration.shape, dtype=bool)
+    if restoration_nodata is not None:
+        valid &= (~numpy.isclose(restoration, restoration_nodata))
 
     if other_nodata is not None:
         valid &= (~numpy.isclose(other, other_nodata))
@@ -91,27 +91,27 @@ def _check_values(baseline, other, baseline_nodata, other_nodata):
     if numpy.count_nonzero(valid) == 0:
         return target_matrix
 
-    other_greater_than_baseline = numpy.zeros(baseline.shape, dtype=numpy.bool)
-    other_greater_than_baseline[valid] = (other[valid] >= baseline[valid])
+    other_greater_than_restoration = numpy.zeros(restoration.shape, dtype=numpy.bool)
+    other_greater_than_restoration[valid] = (other[valid] >= restoration[valid])
 
-    target_matrix[valid & other_greater_than_baseline] = 1
-    target_matrix[valid & ~other_greater_than_baseline] = 0
+    target_matrix[valid & other_greater_than_restoration] = 1
+    target_matrix[valid & ~other_greater_than_restoration] = 0
     return target_matrix
 
 
 def test():
     LOGGER.info('Testing')
-    baseline = numpy.array([
+    restoration = numpy.array([
         [0, 1],
         [2, 3]], dtype=numpy.float32)
-    baseline_nodata = 1
+    restoration_nodata = 1
 
     other = numpy.array([
         [1, 2],
         [3, 0]], dtype=numpy.float32)
     other_nodata = 3
 
-    result = _check_values(baseline, other, baseline_nodata, other_nodata)
+    result = _check_values(restoration, other, restoration_nodata, other_nodata)
 
     expected_result = numpy.array([
         [1, BYTE_NODATA],

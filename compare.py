@@ -91,11 +91,11 @@ def _check_values(restoration, other, restoration_nodata, other_nodata):
     if numpy.count_nonzero(valid) == 0:
         return target_matrix
 
-    other_greater_than_restoration = numpy.zeros(restoration.shape, dtype=numpy.bool)
-    other_greater_than_restoration[valid] = (other[valid] >= restoration[valid])
+    # if restoration >= other, value of 1
+    # else value of 0
+    # nodata if not valid (either restoration or other are nodata)
+    target_matrix[valid] = (restoration[valid] >= other[valid])
 
-    target_matrix[valid & other_greater_than_restoration] = 1
-    target_matrix[valid & ~other_greater_than_restoration] = 0
     return target_matrix
 
 
@@ -114,8 +114,8 @@ def test():
     result = _check_values(restoration, other, restoration_nodata, other_nodata)
 
     expected_result = numpy.array([
-        [1, BYTE_NODATA],
-        [BYTE_NODATA, 0]], dtype=numpy.uint8)
+        [0, BYTE_NODATA],
+        [BYTE_NODATA, 1]], dtype=numpy.uint8)
     numpy.testing.assert_equal(result, expected_result)
     LOGGER.info('Test passed')
 

@@ -2,4 +2,4 @@ FROM --platform=linux/amd64 conda/miniconda3
 
 RUN conda install -y -c conda-forge pygeoprocessing taskgraph
 
-ENTRYPOINT ["/usr/bin/python"]
+ENTRYPOINT ["/usr/local/bin/python"]

@@ -94,7 +94,7 @@ def _check_values(restoration, other, restoration_nodata, other_nodata):
     # if restoration >= other, value of 1
     # else value of 0
     # nodata if not valid (either restoration or other are nodata)
-    target_matrix[valid] = (restoration[valid] >= other[valid])
+    target_matrix[valid] = (restoration[valid] > other[valid])
 
     return target_matrix
 

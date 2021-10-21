@@ -23,6 +23,7 @@ jobs:
             --file=Dockerfile \
             --tag=ghcr.io/phargogh/nci-assert-values-greater-than-baseline \
             --tag=${{ github.event.inputs.name }} \
+            --label "gitSHA=${GITHUB_SHA}" \
             --label "runnumber=${GITHUB_RUN_ID}"
 
       - name: Log in to registry
